@@ -1,0 +1,181 @@
+<html>
+	<head>
+		<style>
+			#canvas {
+				margin: 20px 0 0 20px;
+				border: 2px solid #E1EAFF;
+			}
+			.block {
+				margin-top: 50px;
+				display: flex;
+				align-items: flex-start;
+			}
+			.info {
+				flex: 0 0 auto;
+				height: auto;
+				margin: 10px 20px;
+			}
+			.games {
+				flex: 1 1 auto;
+				display: inline-block;
+			}
+			.game-item {
+				display: inline-block;
+				height: 32px;
+				padding: 0 10px;
+				line-height: 32px;
+				color: #3370FF;
+				font-size: 14px;
+				background-color: #F0F4FF;
+				border-radius: 4px;
+				margin: 10px 10px 0 0;
+				cursor: pointer;
+			}
+			.game-item:hover {
+				opacity: .8;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas width="256" height="240" id="canvas"></canvas>
+		<div class="block">
+			<pre class="info">
+系统按键:
+Q   重置游戏
+-   缩小画面
+=   放大画面
+
+手柄1:
+W/S/A/D  上下左右
+F/G   游戏A/B键
+R/T  选择/暂停
+
+手柄2:
+方向键  上下左右
+J/K  游戏A/B键
+U/I  选择/暂停
+			</pre>
+			<div class="games"></div>
+		</div>
+	</body>
+<script src="wasm_exec.js"></script>
+<script>
+	window.customConsole = {
+		frame: () => undefined,
+		newConsole: () => undefined,
+	}
+	const go = new Go();
+	function run() {
+		WebAssembly.instantiateStreaming(fetch("nes.wasm"), go.importObject)
+			.then((result) => go.run(result.instance));
+	}
+	run()
+</script>
+<script>
+	const games = document.querySelector('.games')
+	let gameList = []
+	fetch("nes-roms.json").then(response => response.json()).then((list) => {
+		gameList = list
+		const html = list.map((k) => `<div class="game-item">${k.name}</div>`)
+		games.innerHTML = `${html.join('')}`
+	})
+	document.onerror = (err) => {
+		console.warn(err)
+	}
+	games.onclick = (e) => {
+		const list = games.children
+		const name = e.target.innerText
+		if (gameList.some(g => g.name === name)) {
+			fetch(`nes-roms/${name}`).then(response => response.arrayBuffer()).then((file) => {
+				const bytes = new Uint8Array(file)
+				newConsole(bytes)
+			})
+		}
+	}
+</script>
+<script>
+
+	function newConsole(buff) {
+		// audioPlayer.start()
+		customConsole.newConsole(buff)
+		// const rate = audioPlayer.getSampleRate()
+		// customConsole.setSampleRate(rate)
+		frame()
+	}
+
+	function handleFiles(files) {
+		const file = files[0]
+		const reader = new FileReader()
+		reader.onloadend = () => {
+			const uint8array = new Uint8Array(reader.result)
+			newConsole(uint8array)
+		}
+		reader.readAsArrayBuffer(file)
+	}
+
+	function frame() {
+		window.requestAnimationFrame(function frame() {
+			customConsole.frame()
+			window.requestAnimationFrame(frame)
+  	})
+	}
+
+</script>
+<script>
+	// 声音处理，未来支持
+	// class AudioPlayer {
+	// 	constructor() {
+	// 		this.bufferSize = 8192
+  //   	this.buffer = new RingBuffer(this.bufferSize)
+	// 	}
+
+	// 	getSampleRate() {
+	// 		return this.audioCtx.sampleRate
+  // 	}
+
+	// 	start() {
+	// 		const AudioContext = window.AudioContext || window.webkitAudioContext
+	// 		this.audioCtx = new AudioContext()
+	// 		this.scriptNode = this.audioCtx.createScriptProcessor(1024, 0, 1)
+	// 		this.scriptNode.onaudioprocess = (e) => this.onaudioprocess(e, this)
+	// 		this.scriptNode.connect(this.audioCtx.destination)
+	// 	}
+
+	// 	stop() {
+	// 		if (this.scriptNode) {
+	// 			this.scriptNode.disconnect(this.audioCtx.destination);
+	// 			this.scriptNode.onaudioprocess = null;
+	// 			this.scriptNode = null;
+	// 		}
+	// 		if (this.audioCtx) {
+	// 			this.audioCtx.close().catch(handleError);
+	// 			this.audioCtx = null;
+	// 		}
+	// 	}
+
+	// 	write(sample) {
+	// 		if (this.buffer.size() >= this.bufferSize) {
+	// 			this.buffer.deqN(1024)
+	// 		}
+	// 		this.buffer.enq(sample)
+	// 	}
+
+	// 	onaudioprocess(e, that) {
+	// 		const out = e.outputBuffer.getChannelData(0)
+	// 		const size = out.length
+	// 		const buffer = that.buffer
+	// 		const len = buffer.size() >= size ? size : buffer.size()
+	// 		const samples = buffer.deqN(len)
+	// 		for (let i = 0; i < size; i++) {
+	// 			if (i < len) {
+	// 				out[i] = samples[i]
+	// 			} else {
+	// 				out[i] = 0
+	// 			}
+	// 		}
+	// 	}
+	// }
+
+	// const audioPlayer = new AudioPlayer()
+</script>
+</html>
