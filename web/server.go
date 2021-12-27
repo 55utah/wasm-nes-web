@@ -10,8 +10,8 @@ import (
 )
 
 func main() {
-	// http://localhost:8002/web/src/
-	addr := "127.0.0.1:8002"
+	// http://localhost:8003/web/src/
+	addr := "127.0.0.1:8003"
 	dir := "."
 	http.ListenAndServe(addr, http.FileServer(http.Dir(dir)))
 }

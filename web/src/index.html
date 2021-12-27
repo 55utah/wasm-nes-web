@@ -31,6 +31,9 @@
 				margin: 10px 10px 0 0;
 				cursor: pointer;
 			}
+			.game-item-red {
+				background-color: #e1eaff;
+			}
 			.game-item:hover {
 				opacity: .8;
 			}
@@ -47,13 +50,13 @@ Q   重置游戏
 
 手柄1:
 W/S/A/D  上下左右
-F/G   游戏A/B键
-R/T  选择/暂停
+F/G   游戏A键/B键
+R/T  选择/确认
 
 手柄2:
 方向键  上下左右
-J/K  游戏A/B键
-U/I  选择/暂停
+J/K  游戏A键/B键
+U/I  选择/确认
 			</pre>
 			<div class="games"></div>
 		</div>
@@ -75,8 +78,8 @@ U/I  选择/暂停
 	const games = document.querySelector('.games')
 	let gameList = []
 	fetch("nes-roms.json").then(response => response.json()).then((list) => {
-		gameList = list
-		const html = list.map((k) => `<div class="game-item">${k.name}</div>`)
+		gameList = list.sort((a, b) => !!a.level ? -1 : 1)
+		const html = list.map((k) => `<div class="game-item${!!k.level ? ' game-item-red' : ''}">${k.name}</div>`)
 		games.innerHTML = `${html.join('')}`
 	})
 	document.onerror = (err) => {
@@ -89,7 +92,7 @@ U/I  选择/暂停
 			fetch(`nes-roms/${name}`).then(response => response.arrayBuffer()).then((file) => {
 				const bytes = new Uint8Array(file)
 				newConsole(bytes)
-			})
+			}).catch(err => console.warn)
 		}
 	}
 </script>
