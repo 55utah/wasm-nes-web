@@ -7,6 +7,9 @@ https://55utah.github.io/wasm-nes/index.html
 ### 效果
 <img src="https://user-images.githubusercontent.com/17704150/147459628-64bc0fe8-8f28-45fd-9f12-39ceedd6fdbb.png" width="300" />
 
+### 音效
+支持音效，部分游戏音效效果不太好，待优化。
+
 ### 组成
 wasm下是go文件，用于编译生成wasm。
 web下是web项目。
