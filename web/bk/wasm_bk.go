@@ -39,9 +39,6 @@ func setSize(ratio int) {
 }
 
 func resize(source *image.RGBA, w int, h int, ratio int) *image.RGBA {
-	if ratio == 1 {
-		return source
-	}
 
 	tw := w * ratio
 	th := h * ratio
@@ -90,35 +87,16 @@ func global() js.Value {
 	return js.Global().Get("customConsole")
 }
 
-// const BufferSize = 8192
-const BufferSize = 2048
+// func outputAudio(v float32) {
+// 	audio := global().Get("outputAudio")
+// 	audio.Invoke(v)
+// }
 
-var audioFloatArray = make([]float32, BufferSize)
-var audioIndex = 0
-
-func outputAudio(v float32) {
-	if audioIndex < BufferSize-1 {
-		audioFloatArray[audioIndex] = v
-		audioIndex++
-	} else {
-		jsFloatArray := js.Global().Get("Float32Array").New(BufferSize)
-
-		for index, val := range audioFloatArray {
-			jsFloatArray.SetIndex(index, val)
-		}
-		global().Set("audioFloa32Array", jsFloatArray)
-
-		audioIndex = 0
-		audioFloatArray = make([]float32, BufferSize)
-	}
-}
-
-func newConsole(file js.Value, sampleRate int) {
+func newConsole(file js.Value) {
 	game := make([]byte, file.Get("length").Int())
 	js.CopyBytesToGo(game, file)
 	console, _ = nes.NewConsole(game)
-	console.SetAudioSampleRate(float64(sampleRate))
-	console.SetAudioOutputWork(outputAudio)
+	// console.SetAudioOutputWork(outputAudio)
 
 	document = js.Global().Get("document")
 	canvas = document.Call("querySelector", "canvas")
@@ -204,7 +182,7 @@ func main() {
 
 	// newConsole
 	global().Set("newConsole", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		newConsole(args[0], args[1].Int())
+		newConsole(args[0])
 		return nil
 	}))
 
@@ -219,6 +197,26 @@ func main() {
 		onFrame()
 		return nil
 	}))
+
+	// setSampleRate
+	// global().Set("setSampleRate", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	// 	sampleRate := args[0].Int()
+	// 	fmt.Printf("sampleRate %f \n", float64(sampleRate))
+	// 	console.SetAudioSampleRate(float64(sampleRate))
+	// 	return nil
+	// }))
+
+	// setController1
+	// global().Set("setController1", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	// 	setController(args[0], 0)
+	// 	return nil
+	// }))
+
+	// // setController2
+	// global().Set("setController2", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+	// 	setController(args[0], 1)
+	// 	return nil
+	// }))
 
 	channel := make(chan int, 0)
 	<-channel

@@ -61,67 +61,11 @@ U/I  选择/确认
 			<div class="games"></div>
 		</div>
 	</body>
-<script>
-	// 声音处理，未来支持
-	class AudioPlayer {
-		constructor() {
-			// this.bufferSize = 8192
-			this.bufferSize = 2048
-			this.buffer = new Float32Array(this.bufferSize).fill(0)
-			this.index = 0
-			this.step = 1024
-		}
-
-		getSampleRate() {
-			return this.audioCtx.sampleRate
-		}
-
-		start() {
-			const AudioContext = window.AudioContext || window.webkitAudioContext
-			this.audioCtx = new AudioContext()
-			this.scriptNode = this.audioCtx.createScriptProcessor(this.step, 0, 1)
-			this.scriptNode.onaudioprocess = (e) => this.onaudioprocess(e, this)
-			this.scriptNode.connect(this.audioCtx.destination)
-		}
-
-		stop() {
-			if (this.scriptNode) {
-				this.scriptNode.disconnect(this.audioCtx.destination);
-				this.scriptNode.onaudioprocess = null;
-				this.scriptNode = null;
-			}
-			if (this.audioCtx) {
-				this.audioCtx.close().catch(console.log);
-				this.audioCtx = null;
-			}
-		}
-
-		onaudioprocess(e, that) {
-			const out = e.outputBuffer.getChannelData(0)
-
-			if (that.index >= that.bufferSize - 1) {
-				that.index = 0
-				this.buffer.set(window.customConsole.audioFloa32Array)
-			}
-
-			for (let i = 0; i < this.step; i++) {
-				out[i] = that.buffer[i+that.index]
-			}
-
-			that.index += this.step
-		}
-	}
-
-	const audioPlayer = new AudioPlayer()
-
-</script>
 <script src="wasm_exec.js"></script>
 <script>
 	window.customConsole = {
 		frame: () => undefined,
 		newConsole: () => undefined,
-		// audioFloa32Array: new Float32Array(8192).fill(0),
-		audioFloa32Array: new Float32Array(2048).fill(0),
 	}
 	const go = new Go();
 	function run() {
@@ -139,7 +83,7 @@ U/I  选择/确认
 		games.innerHTML = `${html.join('')}`
 	})
 	document.onerror = (err) => {
-		console.log(err)
+		console.warn(err)
 	}
 	games.onclick = (e) => {
 		const list = games.children
@@ -148,16 +92,17 @@ U/I  选择/确认
 			fetch(`nes-roms/${name}`).then(response => response.arrayBuffer()).then((file) => {
 				const bytes = new Uint8Array(file)
 				newConsole(bytes)
-			}).catch(err => console.log)
+			}).catch(err => console.warn)
 		}
 	}
 </script>
 <script>
 
 	function newConsole(buff) {
-		audioPlayer.stop()
-		audioPlayer.start()
-		customConsole.newConsole(buff, audioPlayer.getSampleRate())
+		// audioPlayer.start()
+		customConsole.newConsole(buff)
+		// const rate = audioPlayer.getSampleRate()
+		// customConsole.setSampleRate(rate)
 		frame()
 	}
 
@@ -177,5 +122,63 @@ U/I  选择/确认
 			window.requestAnimationFrame(frame)
   	})
 	}
+
+</script>
+<script>
+	// 声音处理，未来支持
+	// class AudioPlayer {
+	// 	constructor() {
+	// 		this.bufferSize = 8192
+  //   	this.buffer = new RingBuffer(this.bufferSize)
+	// 	}
+
+	// 	getSampleRate() {
+	// 		return this.audioCtx.sampleRate
+  // 	}
+
+	// 	start() {
+	// 		const AudioContext = window.AudioContext || window.webkitAudioContext
+	// 		this.audioCtx = new AudioContext()
+	// 		this.scriptNode = this.audioCtx.createScriptProcessor(1024, 0, 1)
+	// 		this.scriptNode.onaudioprocess = (e) => this.onaudioprocess(e, this)
+	// 		this.scriptNode.connect(this.audioCtx.destination)
+	// 	}
+
+	// 	stop() {
+	// 		if (this.scriptNode) {
+	// 			this.scriptNode.disconnect(this.audioCtx.destination);
+	// 			this.scriptNode.onaudioprocess = null;
+	// 			this.scriptNode = null;
+	// 		}
+	// 		if (this.audioCtx) {
+	// 			this.audioCtx.close().catch(handleError);
+	// 			this.audioCtx = null;
+	// 		}
+	// 	}
+
+	// 	write(sample) {
+	// 		if (this.buffer.size() >= this.bufferSize) {
+	// 			this.buffer.deqN(1024)
+	// 		}
+	// 		this.buffer.enq(sample)
+	// 	}
+
+	// 	onaudioprocess(e, that) {
+	// 		const out = e.outputBuffer.getChannelData(0)
+	// 		const size = out.length
+	// 		const buffer = that.buffer
+	// 		const len = buffer.size() >= size ? size : buffer.size()
+	// 		const samples = buffer.deqN(len)
+	// 		for (let i = 0; i < size; i++) {
+	// 			if (i < len) {
+	// 				out[i] = samples[i]
+	// 			} else {
+	// 				out[i] = 0
+	// 			}
+	// 		}
+	// 	}
+	// }
+
+	// const audioPlayer = new AudioPlayer()
 </script>
 </html>
