@@ -1,5 +1,6 @@
 # wasm-fc
-> 基于go语言实现的fc模拟器项目创建的项目，项目最终编译生成wasm，并运行在浏览器上，实现fc模拟器web化。
+> 基于go语言实现的fc模拟器项目创建的项目，项目最终编译生成wasm，并运行在浏览器上，实现fc模拟器web化；
+> 建议优先使用safari浏览器/火狐浏览器，chrome浏览器某些情况下更容易卡顿；
 
 ### 在线体验地址
 https://55utah.github.io/wasm-nes/index.html
