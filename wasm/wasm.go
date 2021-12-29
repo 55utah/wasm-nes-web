@@ -1,7 +1,7 @@
 package main
 
 import (
-	"image"
+	"strconv"
 	"syscall/js"
 	"time"
 
@@ -30,34 +30,27 @@ func floatSecond() float64 {
 	return float64(time.Now().Nanosecond()) * float64(1e-9)
 }
 
-func setSize(ratio int) {
-	if ratio > 1 && ratio < 5 {
-		ratio = ratio
-	}
-	canvas.Set("width", width*ratio)
-	canvas.Set("height", height*ratio)
-}
+// 这个缩放会导致帧率下降，所以先去掉
+// func resize(source *image.RGBA, w int, h int, ratio int) *image.RGBA {
+// 	if ratio == 1 {
+// 		return source
+// 	}
 
-func resize(source *image.RGBA, w int, h int, ratio int) *image.RGBA {
-	if ratio == 1 {
-		return source
-	}
+// 	tw := w * ratio
+// 	th := h * ratio
 
-	tw := w * ratio
-	th := h * ratio
+// 	var target *image.RGBA = image.NewRGBA(image.Rect(0, 0, tw, th))
 
-	var target *image.RGBA = image.NewRGBA(image.Rect(0, 0, tw, th))
+// 	for y := 0; y < th; y++ {
+// 		for x := 0; x < tw; x++ {
+// 			sx := x / ratio
+// 			sy := y / ratio
+// 			target.SetRGBA(x, y, source.RGBAAt(sx, sy))
+// 		}
+// 	}
 
-	for y := 0; y < th; y++ {
-		for x := 0; x < tw; x++ {
-			sx := x / ratio
-			sy := y / ratio
-			target.SetRGBA(x, y, source.RGBAAt(sx, sy))
-		}
-	}
-
-	return target
-}
+// 	return target
+// }
 
 // 将js更新canvas改为go修改dom，执行更快，cpu占用更小！！
 func render(value []byte, width int, height int) {
@@ -82,8 +75,8 @@ func onFrame() {
 	timestamp = current
 	console.StepSeconds(cost)
 	buffer := console.Buffer()
-	newBuffer := resize(buffer, width, height, ratio)
-	render(newBuffer.Pix, width*ratio, height*ratio)
+	// 放弃数据缩放，改为canvas样式缩放
+	render(buffer.Pix, width, height)
 }
 
 func global() js.Value {
@@ -151,8 +144,8 @@ func handleKey(code string, down bool) {
 
 	if down {
 		keyParseSys(code, func() {
-			canvas.Set("width", width*ratio)
-			canvas.Set("height", height*ratio)
+			canvas.Get("style").Set("width", strconv.Itoa(width*ratio)+"px")
+			canvas.Get("style").Set("height", strconv.Itoa(height*ratio)+"px")
 		})
 	}
 
@@ -169,36 +162,6 @@ func handleKey(code string, down bool) {
 	}
 }
 
-func reset() {
-	console.Reset()
-}
-
-// func setController(ctrl js.Value, btnIndex int) {
-// 	if console == nil {
-// 		return
-// 	}
-// 	if ctrl.Get("length").Int() != 8 {
-// 		return
-// 	}
-// 	list := make([]byte, 8)
-// 	js.CopyBytesToGo(list, ctrl)
-
-// 	btn := [8]bool{}
-// 	for i, k := range list {
-// 		if k > 0 {
-// 			btn[i] = true
-// 		} else {
-// 			btn[i] = false
-// 		}
-// 	}
-
-// 	if btnIndex == 0 {
-// 		console.SetButton1(btn)
-// 	} else {
-// 		console.SetButton2(btn)
-// 	}
-// }
-
 func main() {
 	println("Hello, fc!")
 
@@ -207,12 +170,6 @@ func main() {
 		newConsole(args[0], args[1].Int())
 		return nil
 	}))
-
-	// // reset
-	// global().Set("reset", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-	// 	reset()
-	// 	return nil
-	// }))
 
 	// onFrame
 	global().Set("frame", js.FuncOf(func(this js.Value, args []js.Value) interface{} {

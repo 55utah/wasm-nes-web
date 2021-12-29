@@ -37,6 +37,9 @@
 			.game-item:hover {
 				opacity: .8;
 			}
+			.audio-ctrl {
+				margin: 10px 0 0 20px;
+			}
 		</style>
 	</head>
 	<body>
@@ -60,6 +63,10 @@ U/I  选择/确认
 			</pre>
 			<div class="games"></div>
 		</div>
+		<div class="audio-ctrl">
+			<input type="checkbox" id="cbox1" checked="checked" onchange="aduioChange()">
+			<label for="cbox1">音效</label>
+		</div>
 	</body>
 <script>
 	// 声音处理，未来支持
@@ -70,6 +77,7 @@ U/I  选择/确认
 			this.buffer = new Float32Array(this.bufferSize).fill(0)
 			this.index = 0
 			this.step = 1024
+			this.on = true
 		}
 
 		getSampleRate() {
@@ -114,6 +122,17 @@ U/I  选择/确认
 
 	const audioPlayer = new AudioPlayer()
 
+	function aduioChange() {
+		const checkbox = document.querySelector('#cbox1')
+		if (checkbox.checked) {
+			audioPlayer.on = true
+			audioPlayer.start()
+		} else {
+			audioPlayer.on = false
+			audioPlayer.stop()
+		}
+	}
+
 </script>
 <script src="wasm_exec.js"></script>
 <script>
@@ -155,8 +174,10 @@ U/I  选择/确认
 <script>
 
 	function newConsole(buff) {
-		audioPlayer.stop()
-		audioPlayer.start()
+		if (audioPlayer.on) {
+			audioPlayer.stop()
+			audioPlayer.start()
+		}
 		customConsole.newConsole(buff, audioPlayer.getSampleRate())
 		frame()
 	}
