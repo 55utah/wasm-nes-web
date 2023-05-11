@@ -16,6 +16,9 @@ var timestamp float64
 var ctx js.Value
 var canvas js.Value
 var document js.Value
+var window js.Value
+var navigator js.Value
+
 var ratio = 1
 var width = 256
 var height = 240
@@ -25,6 +28,18 @@ var ctrl2 [8]bool
 
 // 写死一个最大值
 const FrameSecond float64 = 0.0167
+
+const (
+	keyA int = iota
+	keyB
+	keySelect
+	keyStart
+	keyUp
+	keyDown
+	keyLeft
+	keyRight
+	keyInvaild int = -1
+)
 
 func floatSecond() float64 {
 	return float64(time.Now().Nanosecond()) * float64(1e-9)
@@ -65,6 +80,7 @@ func render(value []byte, width int, height int) {
 }
 
 func onFrame() {
+	gamepads := navigator.Call("getGamepads")
 	current := floatSecond()
 	cost := current - timestamp
 	if cost > FrameSecond {
@@ -72,6 +88,47 @@ func onFrame() {
 	} else if cost < 0 {
 		cost = 0
 	}
+
+	gamepad1 := gamepads.Index(0)
+	if gamepad1.Type() != js.TypeUndefined && gamepad1.Type() != js.TypeNull {
+		buttons := gamepad1.Get("buttons")
+		axes := gamepad1.Get("axes")
+		if buttons.Length() == 11 && axes.Length() == 8 {
+			// for Microsoft Xbox One X pad
+			ctrl1[keyA] = buttons.Index(0).Get("pressed").Bool()
+			ctrl1[keyB] = buttons.Index(1).Get("pressed").Bool()
+			ctrl1[keySelect] = buttons.Index(6).Get("pressed").Bool()
+			ctrl1[keyStart] = buttons.Index(7).Get("pressed").Bool()
+			axesX := axes.Index(6).Int()
+			axesY := axes.Index(7).Int()
+			ctrl1[keyUp] = (axesY == -1)
+			ctrl1[keyDown] = (axesY == 1)
+			ctrl1[keyLeft] = (axesX == -1)
+			ctrl1[keyRight] = (axesX == 1)
+			console.SetButton1(ctrl1)
+		}
+	}
+
+	gamepad2 := gamepads.Index(1)
+	if gamepad2.Type() != js.TypeUndefined && gamepad2.Type() != js.TypeNull {
+		buttons := gamepad2.Get("buttons")
+		axes := gamepad2.Get("axes")
+		if buttons.Length() == 11 && axes.Length() == 8 {
+			// for Microsoft Xbox One X pad
+			ctrl2[keyA] = buttons.Index(0).Get("pressed").Bool()
+			ctrl2[keyB] = buttons.Index(1).Get("pressed").Bool()
+			ctrl2[keySelect] = buttons.Index(6).Get("pressed").Bool()
+			ctrl2[keyStart] = buttons.Index(7).Get("pressed").Bool()
+			axesX := axes.Index(6).Int()
+			axesY := axes.Index(7).Int()
+			ctrl2[keyUp] = (axesY == -1)
+			ctrl2[keyDown] = (axesY == 1)
+			ctrl2[keyLeft] = (axesX == -1)
+			ctrl2[keyRight] = (axesX == 1)
+			console.SetButton2(ctrl2)
+		}
+	}
+
 	timestamp = current
 	console.StepSeconds(cost)
 	buffer := console.Buffer()
@@ -113,11 +170,14 @@ func newConsole(file js.Value, sampleRate int) {
 	console.SetAudioSampleRate(float64(sampleRate))
 	console.SetAudioOutputWork(outputAudio)
 
+	window = js.Global().Get("window")
 	document = js.Global().Get("document")
+	navigator = js.Global().Get("navigator")
 	canvas = document.Call("querySelector", "canvas")
 	ctx = canvas.Call("getContext", "2d")
 
 	handleKeyEvent()
+	handleGamepadEvent()
 }
 
 func handleKeyEvent() {
@@ -134,6 +194,22 @@ func handleKeyEvent() {
 		return nil
 	})
 	document.Set("onkeyup", onkeyupCallback)
+}
+
+func handleGamepadEvent() {
+	onGamepadConnCallback := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		e := args[0]
+		println("Gamepad connected: " + e.Get("gamepad").Get("id").String())
+		return nil
+	})
+	window.Call("addEventListener", "gamepadconnected", onGamepadConnCallback)
+
+	onGamepadDisconnCallback := js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		e := args[0]
+		println("Gamepad disconnect: " + e.Get("gamepad").Get("id").String())
+		return nil
+	})
+	window.Call("addEventListener", "gamepaddisconnected", onGamepadDisconnCallback)
 }
 
 func handleKey(code string, down bool) {
@@ -203,79 +279,61 @@ func keyParseSys(keyName string, resizeWindow func()) {
 }
 
 func keyPress1(code string) int {
-	index := -1
 	switch code {
 	// A
 	case "KeyF":
-		index = 0
-		break
+		return keyA
 	// B
 	case "KeyG":
-		index = 1
-		break
+		return keyB
 	// Select
 	case "KeyR":
-		index = 2
-		break
+		return keySelect
 	// Start
 	case "KeyT":
-		index = 3
-		break
+		return keyStart
 	// 上
 	case "KeyW":
-		index = 4
-		break
+		return keyUp
 	// 下
 	case "KeyS":
-		index = 5
-		break
+		return keyDown
 	// 左
 	case "KeyA":
-		index = 6
-		break
+		return keyLeft
 	// 右
 	case "KeyD":
-		index = 7
-		break
+		return keyRight
 	}
-	return index
+	return keyInvaild
 }
 
 func keyPress2(code string) int {
-	index := -1
 	switch code {
 	// A
 	case "KeyJ":
-		index = 0
-		break
+		return keyA
 	// B
 	case "KeyK":
-		index = 1
-		break
+		return keyB
 	// Select
 	case "KeyU":
-		index = 2
-		break
+		return keySelect
 	// Start
 	case "KeyI":
-		index = 3
-		break
+		return keyStart
 	// 上
 	case "ArrowUp":
-		index = 4
-		break
+		return keyUp
 	// 下
 	case "ArrowDown":
-		index = 5
-		break
+		return keyDown
 	// 左
 	case "ArrowLeft":
-		index = 6
-		break
+		return keyLeft
 	// 右
 	case "ArrowRight":
-		index = 7
-		break
+		return keyRight
 	}
-	return index
+	return keyInvaild
 }
