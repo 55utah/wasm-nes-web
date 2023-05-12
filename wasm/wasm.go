@@ -68,15 +68,57 @@ func floatSecond() float64 {
 // }
 
 // 将js更新canvas改为go修改dom，执行更快，cpu占用更小！！
-func render(value []byte, width int, height int) {
-	imageData := ctx.Call("getImageData", 0, 0, width, height)
-	buf := js.Global().Get("Uint8ClampedArray").New(width * height * 4)
-
-	dst := js.Global().Get("Uint8Array").New(len(value))
-	js.CopyBytesToJS(dst, value)
-	buf.Call("set", dst)
-	imageData.Get("data").Call("set", buf)
+func render(pixelData []byte, width int, height int) {
+	imageData := ctx.Call("createImageData", width, height)
+	pixelArray := js.Global().Get("Uint8Array").New(len(pixelData))
+	js.CopyBytesToJS(pixelArray, pixelData)
+	imageData.Get("data").Call("set", pixelArray)
 	ctx.Call("putImageData", imageData, 0, 0)
+}
+
+func processGamepad(gamepad js.Value, setButton func([8]bool)) {
+
+	ctrl := [8]bool{}
+	if gamepad.Type() == js.TypeUndefined || gamepad.Type() == js.TypeNull {
+		return
+	}
+
+	buttons := gamepad.Get("buttons")
+	axes := gamepad.Get("axes")
+
+	// for Microsoft Xbox One X pad
+	if buttons.Length() != 11 || axes.Length() != 8 {
+		return
+	}
+
+	if buttons.Index(0).Get("pressed").Bool() {
+		ctrl[keyA] = true
+	}
+	if buttons.Index(1).Get("pressed").Bool() {
+		ctrl[keyB] = true
+	}
+	if buttons.Index(6).Get("pressed").Bool() {
+		ctrl[keySelect] = true
+	}
+	if buttons.Index(7).Get("pressed").Bool() {
+		ctrl[keyStart] = true
+	}
+
+	axesX := axes.Index(6).Int()
+	axesY := axes.Index(7).Int()
+	if axesY == -1 {
+		ctrl[keyUp] = true
+	} else if axesY == 1 {
+		ctrl[keyDown] = true
+	}
+
+	if axesX == -1 {
+		ctrl[keyLeft] = true
+	} else if axesX == 1 {
+		ctrl[keyRight] = true
+	}
+
+	setButton(ctrl)
 }
 
 func onFrame() {
@@ -89,45 +131,8 @@ func onFrame() {
 		cost = 0
 	}
 
-	gamepad1 := gamepads.Index(0)
-	if gamepad1.Type() != js.TypeUndefined && gamepad1.Type() != js.TypeNull {
-		buttons := gamepad1.Get("buttons")
-		axes := gamepad1.Get("axes")
-		if buttons.Length() == 11 && axes.Length() == 8 {
-			// for Microsoft Xbox One X pad
-			ctrl1[keyA] = buttons.Index(0).Get("pressed").Bool()
-			ctrl1[keyB] = buttons.Index(1).Get("pressed").Bool()
-			ctrl1[keySelect] = buttons.Index(6).Get("pressed").Bool()
-			ctrl1[keyStart] = buttons.Index(7).Get("pressed").Bool()
-			axesX := axes.Index(6).Int()
-			axesY := axes.Index(7).Int()
-			ctrl1[keyUp] = (axesY == -1)
-			ctrl1[keyDown] = (axesY == 1)
-			ctrl1[keyLeft] = (axesX == -1)
-			ctrl1[keyRight] = (axesX == 1)
-			console.SetButton1(ctrl1)
-		}
-	}
-
-	gamepad2 := gamepads.Index(1)
-	if gamepad2.Type() != js.TypeUndefined && gamepad2.Type() != js.TypeNull {
-		buttons := gamepad2.Get("buttons")
-		axes := gamepad2.Get("axes")
-		if buttons.Length() == 11 && axes.Length() == 8 {
-			// for Microsoft Xbox One X pad
-			ctrl2[keyA] = buttons.Index(0).Get("pressed").Bool()
-			ctrl2[keyB] = buttons.Index(1).Get("pressed").Bool()
-			ctrl2[keySelect] = buttons.Index(6).Get("pressed").Bool()
-			ctrl2[keyStart] = buttons.Index(7).Get("pressed").Bool()
-			axesX := axes.Index(6).Int()
-			axesY := axes.Index(7).Int()
-			ctrl2[keyUp] = (axesY == -1)
-			ctrl2[keyDown] = (axesY == 1)
-			ctrl2[keyLeft] = (axesX == -1)
-			ctrl2[keyRight] = (axesX == 1)
-			console.SetButton2(ctrl2)
-		}
-	}
+	processGamepad(gamepads.Index(0), console.SetButton1)
+	processGamepad(gamepads.Index(1), console.SetButton2)
 
 	timestamp = current
 	console.StepSeconds(cost)
